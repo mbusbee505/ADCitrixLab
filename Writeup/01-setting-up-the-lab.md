@@ -79,5 +79,3 @@ For this lab I will be taking snapshots often with my machines, particularly in 
 - OS: Windows 11 Enterprise
 - Full System Update
 - Snapshot #1 Name: Fresh OS Install
-
-# Citrix 

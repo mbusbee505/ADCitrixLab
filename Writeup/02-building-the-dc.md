@@ -1,6 +1,8 @@
 
 # Set Static IP
 
+> NOTE: I found out later that the Router/Gateway IP address for VMware's NAT network needs to be `192.168.10.2` not `192.168.10.1`. VMware uses `.1` for the WAN side of the NAT and `.2` for the LAN side that our lab uses. When you see the screenshots below using `.1` take a mental note you should be using `.2` instead.
+
 Next up we need the Domain Controller set up with a static IP address. The easiest way to do that is to go to the `Server Manager > Local Server` and click the blue link next to Ethernet.
 
 ![[02-building-the-dc.png]]
@@ -9,7 +11,7 @@ Click on `Ethernet0 > Properties > Internet Protocol Version 4 (TCP/IPv4) > Prop
 
 IP address: 192.168.10.10
 Subnet mask: 255.255.255.0
-Default Gateway: 192.168.10.1
+Default Gateway: 192.168.10.2
 Preferred DNS server: 127.0.0.1
 
 ![[02-building-the-dc-1.png]]
@@ -161,7 +163,7 @@ In the New Scope Wizard enter the following configuration:
 - Start IP Address: `192.168.10.100`
 - End IP Address: `192.168.10.200`
 - Subnet mask: `255.255.255.0`
-- Router (Default Gateway): `192.168.10.1`
+- Router (Default Gateway): `192.168.10.2`
 - Parent domain: `busbeecorp.local`
 
 Accept all other defaults and click next through to the end of the wizard then click Finish. This will automatically apply our options. Next we need to click into `Server Options` then click on `Action > Configure Options`. This will bring up a menu to configure the DHCP server options.
@@ -171,7 +173,7 @@ Accept all other defaults and click next through to the end of the wizard then c
 Check the following boxes in this menu and configure these options:
 
 - 003 Router
-	- IP address: `192.168.10.1`
+	- IP address: `192.168.10.2`
 	- Click Add
 - 006 DNS Servers
 	- IP address: `192.168.10.10`
@@ -181,7 +183,80 @@ Check the following boxes in this menu and configure these options:
 
 We can test the configuration by rebooting one of our workstation machines and confirming it got an IP address within the address pool we set.
 
-# Set DNS Forwarders
+I logged into WIN11-01 and ran IPConfig to get a new IP address.
+
+```powershell
+ipconfig /release
+ipconfig /renew
+```
+
+It then showed that its using the correct gateway and gained an IP address within the address pool.
+
+![[02-building-the-dc-16.png]]
+
+And we can also ping DC01 from WIN11-01:
+
+![[02-building-the-dc-17.png]]
+
+# Building OU Structure
+
+```powershell
+$domain = "DC=busbeecorp,DC=local"
+$root   = "OU=BusbeeCorp,$domain"
+
+# Create root OU
+New-ADOrganizationalUnit -Name "BusbeeCorp" -Path $domain -ProtectedFromAccidentalDeletion $true
+
+# Top-level OUs
+$topLevel = @("Users", "Computers", "Groups", "Service Accounts")
+foreach ($ou in $topLevel) {
+    New-ADOrganizationalUnit -Name $ou -Path $root -ProtectedFromAccidentalDeletion $true
+}
+
+# User sub-OUs
+$departments = @("IT", "Finance", "HR", "Sales", "Engineering", "Marketing", "Executive")
+foreach ($dept in $departments) {
+    New-ADOrganizationalUnit -Name $dept -Path "OU=Users,$root" -ProtectedFromAccidentalDeletion $true
+}
+
+# Computer sub-OUs
+$computerOUs = @("Workstations", "Servers")
+foreach ($ou in $computerOUs) {
+    New-ADOrganizationalUnit -Name $ou -Path "OU=Computers,$root" -ProtectedFromAccidentalDeletion $true
+}
+```
+
+You can verify the OUs took effect by going to `Server Manager > Tools > Active Directory Users and Computers` and checking out the folders under the domain.
+
+![[02-building-the-dc-18.png]]
+
+
+# Importing Users
 
 
 
+```powershell
+$domain = "DC=busbeecorp,DC=local"
+$password = ConvertTo-SecureString "Welcome1!" -AsPlainText -Force
+
+Import-Csv "C:\Users\Administrator\Downloads\busbeecorp_user_import.csv" | ForEach-Object {
+
+    # Map department to OU path
+    $ou = "OU=$($_.Department),OU=Users,OU=BusbeeCorp,$domain"
+
+    New-ADUser `
+        -GivenName        $_.FirstName `
+        -Surname          $_.LastName `
+        -Name             "$($_.FirstName) $($_.LastName)" `
+        -DisplayName      "$($_.FirstName) $($_.LastName)" `
+        -SamAccountName   $_.SamAccountName `
+        -UserPrincipalName "$($_.SamAccountName)@busbeecorp.local" `
+        -Department       $_.Department `
+        -Title            $_.JobTitle `
+        -Company          "BusbeeCorp" `
+        -Path             $ou `
+        -AccountPassword  $password `
+        -Enabled          $true `
+        -ChangePasswordAtLogon $false
+}
+```
