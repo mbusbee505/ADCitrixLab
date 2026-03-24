@@ -21,7 +21,7 @@ Now I debated how I wanted to have the network setup for this lab. I was torn be
 
 I ultimately chose to use NAT so as to not overcomplicate the project. If I wanted to practice good security I would isolate them in a Host-Only network, and possibly allow a few of them restricted internet access via a second VMware network interface that used NAT and had strict firewall rules enabled.
 
-![[01-setting-up-the-lab.png]]
+![](<attachments/01-setting-up-the-lab.png>)
 
 Notice that I have configured `VMnet8`, currently set to NAT external connection type, to use the Subnet Address: 192.168.10.0 and Subnet Mask: 255.255.255.0 which gives us a dedicated space for the lab machines and plenty of room to work with address-wise. 
 
@@ -32,7 +32,7 @@ With that decided I moved on to building the virtual machines.
 
 Basically for this section I am going to create 3 Windows Servers and 2 Windows Workstations. The initial setup process will be just about the same for each respectively, except for some slight differences with regards to resource allocation, naming, and other specific identity items. Below is a summary of the installations.
 
-![[01-setting-up-the-lab-1.png]]
+![](<attachments/01-setting-up-the-lab-1.png>)
 
 It's worth noting that in a real production environment you would want to make extremely secure passwords for each Administrator account on the server machines and not use a local admin account on the workstations, instead having the user login to the computer for the first time using their work login. You could also consider a more advanced setup that uses Intune and Autopilot to automatically run a Out-Of-The-Box configuration to join the device to the domain and connect to the 
 ## Snapshots

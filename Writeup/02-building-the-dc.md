@@ -5,7 +5,7 @@
 
 Next up we need the Domain Controller set up with a static IP address. The easiest way to do that is to go to the `Server Manager > Local Server` and click the blue link next to Ethernet.
 
-![[02-building-the-dc.png]]
+![](<attachments/02-building-the-dc.png>)
 
 Click on `Ethernet0 > Properties > Internet Protocol Version 4 (TCP/IPv4) > Properties` to open the setting page for the server's IP address. Here set the following configuration:
 
@@ -14,7 +14,7 @@ Subnet mask: 255.255.255.0
 Default Gateway: 192.168.10.2
 Preferred DNS server: 127.0.0.1
 
-![[02-building-the-dc-1.png]]
+![](<attachments/02-building-the-dc-1.png>)
 
 I am setting the DNS server to the Domain Controller's loopback address which is a standard procedure to make sure the server points to itself for DNS queries during installation.
 
@@ -22,7 +22,7 @@ I am setting the DNS server to the Domain Controller's loopback address which is
 
 Next, we want to change the server's host name to `DC01`. That can be done back on the `Server Manger > Local Server` page by clicking the blue link next to "Computer Name".
 
-![[02-building-the-dc-2.png]]
+![](<attachments/02-building-the-dc-2.png>)
 
 After this the server will need to reboot. 
 
@@ -32,7 +32,7 @@ Once the server is back up after the reboot we need to take another snapshot bef
 
 > NOTE: Create Snapshot: `Pre-AD DS`
 
-![[02-building-the-dc-3.png]]
+![](<attachments/02-building-the-dc-3.png>)
 
 # Add AD DS Role
 
@@ -47,7 +47,7 @@ To begin the process of configuring the DC01 server as a Domain Controller go to
 - Confirm installation selections: Restart the destination server automatically if required: Checked
 
 
-![[02-building-the-dc-4.png]]
+![](<attachments/02-building-the-dc-4.png>)
 
 Once everything is selected correctly, click Install. This will take some time to run, then we will need to do the post-deployment configuration.
 
@@ -55,7 +55,7 @@ Once everything is selected correctly, click Install. This will take some time t
 
 Once the Add Roles and Features Wizard completes there will be a yellow flag icon on the Server Manager page.
 
-![[02-building-the-dc-5.png]]
+![](<attachments/02-building-the-dc-5.png>)
 
 Click the flag, then click the "Promote this server to a domain controller" blue link. This will open the Active Directory Domain Services Configuration Wizard which will guide us through the rest of the domain controller installation. I used the following config for the wizard:
 
@@ -82,7 +82,7 @@ Once DC01 finishes installing the domain controller settings and reboots we will
 dcdiag /test:netlogons 
 ```
 
-![[02-building-the-dc-6.png]]
+![](<attachments/02-building-the-dc-6.png>)
 
 You should see successful connectivity and NetLogons and no errors reported on the partition tests.
 
@@ -102,7 +102,7 @@ nslookup busbeecorp.local
 
 This will test the DNS capability and make sure our DC01 IP 192.168.10.10 resolves to our domain name `busbeecorp.local`. 
 
-![[02-building-the-dc-7.png]]
+![](<attachments/02-building-the-dc-7.png>)
 
 ## NetLogon service
 
@@ -112,7 +112,7 @@ Confirm the NetLogon service is running. This should work after confirming the l
 Get-Service Netlogon
 ```
 
-![[02-building-the-dc-8.png]]
+![](<attachments/02-building-the-dc-8.png>)
 
 ## SYSVOL
 
@@ -122,13 +122,13 @@ This should list the SYSVOL and NETLOGON shares.
 net share
 ```
 
-![[02-building-the-dc-9.png]]
+![](<attachments/02-building-the-dc-9.png>)
 
 ## Sites and Services
 
 In `Server Manager > Tools > Active Directory Sites and Services` check that Default-First-Site-Names contains DC01.
 
-![[02-building-the-dc-10.png]]
+![](<attachments/02-building-the-dc-10.png>)
 
 # Snapshot Checkpoint
 
@@ -138,11 +138,11 @@ Go ahead and create a new checkpoint once we know the domain controller settings
 
 Now that we have the domain controller role set up on DC01 we will want it to handle DHCP IP address assignment for us as well. To install the DHCP role go to `Server Manager > Add Roles and Features` and keep clicking next, accepting defaults, until you get to the Server Roles page.
 
-![[02-building-the-dc-11.png]]
+![](<attachments/02-building-the-dc-11.png>)
 
 Check the box for `DHCP Server` which will open a pop-up box. Accept the defaults here and click Add Features. Keep clicking next until you get an Install button and click that too. DHCP will take a minute to install then you should see another yellow flag on the Server Manager page that will want you to complete the DHCP configuration.
 
-![[02-building-the-dc-12.png]]
+![](<attachments/02-building-the-dc-12.png>)
 
 This will bring up another configuration wizard. 
 
@@ -151,11 +151,11 @@ This will bring up another configuration wizard.
 
 Click commit. Now we need to restart the DHCP service for the config to take effect. Go to `Server Manager > DHCP > Services > DC01` and right click to restart the service.
 
-![[02-building-the-dc-13.png]]
+![](<attachments/02-building-the-dc-13.png>)
 
 Now to set the DHCP scope go to `Server Manager > Tools > DHCP` and expand the tree `DC01 > IPv4` and right click it and select New Scope.
 
-![[02-building-the-dc-15.png]]
+![](<attachments/02-building-the-dc-15.png>)
 
 In the New Scope Wizard enter the following configuration:
 
@@ -168,7 +168,7 @@ In the New Scope Wizard enter the following configuration:
 
 Accept all other defaults and click next through to the end of the wizard then click Finish. This will automatically apply our options. Next we need to click into `Server Options` then click on `Action > Configure Options`. This will bring up a menu to configure the DHCP server options.
 
-![[02-building-the-dc-14.png]]
+![](<attachments/02-building-the-dc-14.png>)
 
 Check the following boxes in this menu and configure these options:
 
