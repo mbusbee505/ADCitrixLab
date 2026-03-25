@@ -198,6 +198,27 @@ And we can also ping DC01 from WIN11-01:
 
 ![](<attachments/02-building-the-dc-17.png>)
 
+# Set DHCP Reservations for SRV01 and CTX01
+
+> NOTE: While we are logged in here with each server go ahead and update the computer name
+
+On each of the other servers run this to get the MAC address for it:
+
+```powershell
+Get-NetAdapter | Select-Object Name, MacAddress, Status
+```
+
+![](02-building-the-dc-23.png)
+
+![](02-building-the-dc-24.png)
+
+Next run the following commands to set those MAC addresses for each IP reservation. If you are following along at home make sure you switch out the numbers here:
+
+```powershell
+Add-DhcpServerv4Reservation -ScopeId "192.168.10.0" -IPAddress "192.168.10.20" -ClientId "00-0C-29-C4-65-61" -Description "SRV01 Application Server"
+
+Add-DhcpServerv4Reservation -ScopeId "192.168.10.0" -IPAddress "192.168.10.30" -ClientId "00-0C-29-00-81-C1" -Description "CTX01 Citrix Delivery Controller"
+```
 # Set DNS Forwarders
 
 Next up we need to set the DNS Forwarders so DC01 can resolve external queries that are not listed manually. Just go to `Server Manager > Tools > DNS > DC01 > right-click > Properties > Forwarders tab`
@@ -206,12 +227,42 @@ Add:
 - `8.8.8.8` (Google)
 - `1.1.1.1` (Cloudflare)
 
+![](02-building-the-dc-20.png)
+
 Verify with:
+
 ```powershell 
 nslookup google.com
 ```
 
+You should see several Name Server IP addresses for google.com come back. If this doesn't work, the DNS is broken somewhere and needs to be looked at.
+
+![](02-building-the-dc-21.png)
+
+# Create Reverse Lookup Zone
+
+```powershell
+Add-DnsServerPrimaryZone -NetworkID "192.168.10.0/24" -ReplicationScope "Forest"
+```
+
+Then create DNS A records for each of the other servers:
+
+```powershell
+Add-DnsServerResourceRecordA -Name "SRV01" -ZoneName "busbeecorp.local" -IPv4Address "192.168.10.20" -CreatePtr
+
+Add-DnsServerResourceRecordA -Name "CTX01" -ZoneName "busbeecorp.local" -IPv4Address "192.168.10.30" -CreatePtr
+```
+
+Verify with the following lines:
+
+```powershell
+nslookup 192.168.10.20
+nslookup 192.168.10.30
+```
+
 # Building OU Structure
+
+Next up I am going to build out some Organizational Units (OUs) which are a type of entity Active Directory uses to organize other pieces. Think of it as a folder to put things in. In this case, I am creating additional sub-OUs within the BusbeeCorp OU to organize our different business departments and the computers they use. This will help us to apply settings and policies to only specific departments or other groupings so we can target changes to only specific areas of the IT environment.
 
 ```powershell
 $domain = "DC=busbeecorp,DC=local"
@@ -252,10 +303,86 @@ Next up we need to import the user database. You can use the command below to do
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mbusbee505/ADCitrixLab/main/Lab-Data/busbeecorp_user_import.csv" -OutFile "C:\Users\Administrator\Downloads\busbeecorp_user_import.csv"
 ```
 
-And now that we have it downloaded the following PowerShell can be used to import the .csv file to Active Directory.
+And now that we have it downloaded the following PowerShell can be used to import the .csv file to Active Directory. The script will sort each user into its respective OU based on their department listed in the csv.
 
 ```powershell
-$root = "OU=BusbeeCorp,DC=busbeecorp,DC=local" 
-foreach ($ou in @("Operations","Research","Support","Security")) { New-ADOrganizationalUnit -Name $ou -Path "OU=Users,$root" -ProtectedFromAccidentalDeletion $true }
+
+$domain = "DC=busbeecorp,DC=local"
+$password = ConvertTo-SecureString "Welcome1!" -AsPlainText -Force
+
+Import-Csv "C:\Users\Administrator\Downloads\busbeecorp_user_import.csv" | ForEach-Object {
+    $ou = "OU=$($_.Department),OU=Users,OU=BusbeeCorp,$domain"
+    Write-Host "Creating $($_.SamAccountName) in $ou"
+    try {
+        New-ADUser `
+            -GivenName        $_.FirstName `
+            -Surname          $_.LastName `
+            -Name             "$($_.FirstName) $($_.LastName)" `
+            -DisplayName      "$($_.FirstName) $($_.LastName)" `
+            -SamAccountName   $_.SamAccountName `
+            -UserPrincipalName "$($_.SamAccountName)@busbeecorp.local" `
+            -Department       $_.Department `
+            -Title            $_.JobTitle `
+            -Company          "BusbeeCorp" `
+            -Path             $ou `
+            -AccountPassword  $password `
+            -Enabled          $true `
+            -ChangePasswordAtLogon $false
+        Write-Host "  OK" -ForegroundColor Green
+    } catch {
+        Write-Host "  ERROR: $_" -ForegroundColor Red
+    }
+}
 ```
 
+Now we can verify the user count to confirm the import was successful.
+
+```powershell
+Get-ADUser -Filter * -SearchBase "OU=Users,OU=BusbeeCorp,DC=busbeecorp,DC=local" | Measure-Object
+```
+
+![](02-building-the-dc-22.png)
+# Creating Security Groups
+
+Now we need to create security groups for our users so we can apply security permissions across each department. Once this is in place, if a user transfers to another department they will shed their old permissions and gain those of the new department. Similarly, any new employees hired and added to a department will automatically get the correct permissions.
+
+```powershell
+$root = "OU=BusbeeCorp,DC=busbeecorp,DC=local"
+$departments = @("IT","Finance","HR","Sales","Engineering","Marketing","Executive")
+
+foreach ($dept in $departments) {
+    New-ADGroup -Name "GRP_$dept" `
+        -GroupScope Global `
+        -GroupCategory Security `
+        -Path "OU=Groups,$root" `
+        -Description "$dept department security group"
+}
+```
+
+The following script will add users to their matching groups:
+
+```powershell
+$domain = "DC=busbeecorp,DC=local"
+
+foreach ($dept in @("IT","Finance","HR","Sales","Engineering","Marketing","Executive")) {
+    $users = Get-ADUser -Filter * -SearchBase "OU=$dept,OU=Users,OU=BusbeeCorp,$domain"
+    Add-ADGroupMember -Identity "GRP_$dept" -Members $users
+}
+```
+
+And now verify it worked:
+
+```powershell
+Get-ADGroup -Filter * -SearchBase "OU=Groups,OU=BusbeeCorp,DC=busbeecorp,DC=local" | ForEach-Object {
+    $count = (Get-ADGroupMember $_.Name).Count
+    Write-Host "$($_.Name): $count members"
+}
+```
+
+![](02-building-the-dc-19.png)
+
+# Screenshot Checkpoint
+
+Now would be a good time to take another snapshot since we are basically done with DC01 setup. Snapshot name: `Post-Network-OU-Setup`
+
+With that all done we are ready to move on to adding the workstations to the BusbeeCorp domain.
