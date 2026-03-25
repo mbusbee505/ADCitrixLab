@@ -192,11 +192,24 @@ ipconfig /renew
 
 It then showed that its using the correct gateway and gained an IP address within the address pool.
 
-![[02-building-the-dc-16.png]]
+![](<attachments/02-building-the-dc-16.png>)
 
 And we can also ping DC01 from WIN11-01:
 
-![[02-building-the-dc-17.png]]
+![](<attachments/02-building-the-dc-17.png>)
+
+# Set DNS Forwarders
+
+Next up we need to set the DNS Forwarders so DC01 can resolve external queries that are not listed manually. Just go to `Server Manager > Tools > DNS > DC01 > right-click > Properties > Forwarders tab`
+
+Add:
+- `8.8.8.8` (Google)
+- `1.1.1.1` (Cloudflare)
+
+Verify with:
+```powershell 
+nslookup google.com
+```
 
 # Building OU Structure
 
@@ -228,12 +241,18 @@ foreach ($ou in $computerOUs) {
 
 You can verify the OUs took effect by going to `Server Manager > Tools > Active Directory Users and Computers` and checking out the folders under the domain.
 
-![[02-building-the-dc-18.png]]
+![](<attachments/02-building-the-dc-18.png>)
 
 
 # Importing Users
 
+Next up we need to import the user database. You can use the command below to download the file from my GitHub repo: 
 
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mbusbee505/ADCitrixLab/main/Lab-Data/busbeecorp_user_import.csv" -OutFile "C:\Users\Administrator\Downloads\busbeecorp_user_import.csv"
+```
+
+And now that we have it downloaded the following PowerShell can be used to import the .csv file to Active Directory.
 
 ```powershell
 $domain = "DC=busbeecorp,DC=local"
