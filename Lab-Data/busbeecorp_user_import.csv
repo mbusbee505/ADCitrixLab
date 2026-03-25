@@ -1,21 +1,21 @@
 FirstName,LastName,SamAccountName,Department,JobTitle
-Samuel,Davis,samuel.davis,Operations,Systems Administrator
+Samuel,Davis,samuel.davis,IT,Systems Administrator
 Larry,Jackson,larry.jackson,Engineering,Technical Support Specialist
-Larry,Smith,larry.smith,Research,Help Desk Technician
+Larry,Smith,larry.smith,IT,Help Desk Technician
 Brandon,Ramirez,brandon.ramirez,HR,Security Analyst
 Mark,Jones,mark.jones,Marketing,SOC Analyst
 Jack,Perez,jack.perez,Finance,Network Administrator
 Jack,Ramirez,jack.ramirez,Marketing,DevOps Engineer
 Ryan,Brown,ryan.brown,Sales,SOC Analyst
-Ryan,Rodriguez,ryan.rodriguez,Operations,Software Engineer
-Justin,Jackson,justin.jackson,Support,Security Analyst
-Joseph,Johnson,joseph.johnson,Research,DevOps Engineer
+Ryan,Rodriguez,ryan.rodriguez,Engineering,Software Engineer
+Justin,Jackson,justin.jackson,IT,Security Analyst
+Joseph,Johnson,joseph.johnson,Engineering,DevOps Engineer
 Timothy,Adams,timothy.adams,IT,Vulnerability Analyst
-Benjamin,Baker,benjamin.baker,Security,Help Desk Technician
-Kathleen,Johnson,kathleen.johnson,Security,IT Specialist
+Benjamin,Baker,benjamin.baker,IT,Help Desk Technician
+Kathleen,Johnson,kathleen.johnson,IT,IT Specialist
 Nancy,Jones,nancy.jones,Engineering,Systems Administrator
 Samantha,Lee,samantha.lee,Sales,Application Support Analyst
-Emily,Harris,emily.harris,Support,Security Analyst
+Emily,Harris,emily.harris,HR,Security Analyst
 Catherine,Robinson,catherine.robinson,IT,Cloud Engineer
 Sarah,Green,sarah.green,Finance,Threat Hunter
 Rebecca,Martinez,rebecca.martinez,HR,Desktop Support Analyst

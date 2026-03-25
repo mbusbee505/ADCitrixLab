@@ -255,27 +255,7 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mbusbee505/ADCitrixLab
 And now that we have it downloaded the following PowerShell can be used to import the .csv file to Active Directory.
 
 ```powershell
-$domain = "DC=busbeecorp,DC=local"
-$password = ConvertTo-SecureString "Welcome1!" -AsPlainText -Force
-
-Import-Csv "C:\Users\Administrator\Downloads\busbeecorp_user_import.csv" | ForEach-Object {
-
-    # Map department to OU path
-    $ou = "OU=$($_.Department),OU=Users,OU=BusbeeCorp,$domain"
-
-    New-ADUser `
-        -GivenName        $_.FirstName `
-        -Surname          $_.LastName `
-        -Name             "$($_.FirstName) $($_.LastName)" `
-        -DisplayName      "$($_.FirstName) $($_.LastName)" `
-        -SamAccountName   $_.SamAccountName `
-        -UserPrincipalName "$($_.SamAccountName)@busbeecorp.local" `
-        -Department       $_.Department `
-        -Title            $_.JobTitle `
-        -Company          "BusbeeCorp" `
-        -Path             $ou `
-        -AccountPassword  $password `
-        -Enabled          $true `
-        -ChangePasswordAtLogon $false
-}
+$root = "OU=BusbeeCorp,DC=busbeecorp,DC=local" 
+foreach ($ou in @("Operations","Research","Support","Security")) { New-ADOrganizationalUnit -Name $ou -Path "OU=Users,$root" -ProtectedFromAccidentalDeletion $true }
 ```
+
